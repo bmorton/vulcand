@@ -321,7 +321,7 @@ func (s *Service) startApi(file *proxy.FileDescriptor) error {
 
 	server := &http.Server{
 		Addr:           addr,
-		Handler:        s.apiApp.GetHandler(),
+		Handler:        corsHandler(s.apiApp.GetHandler()),
 		ReadTimeout:    s.options.ServerReadTimeout,
 		WriteTimeout:   s.options.ServerWriteTimeout,
 		MaxHeaderBytes: 1 << 20,
@@ -338,6 +338,16 @@ func (s *Service) startApi(file *proxy.FileDescriptor) error {
 
 	s.apiServer = manners.NewWithOptions(manners.Options{Server: server, Listener: listener})
 	return s.apiServer.ListenAndServe()
+}
+
+func corsHandler(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "OPTIONS" {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+		} else {
+			h.ServeHTTP(w, r)
+		}
+	})
 }
 
 func execPath() (string, error) {
